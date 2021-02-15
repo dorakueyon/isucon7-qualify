@@ -1,0 +1,44 @@
+---
+file: ./log/nginx/access.log
+sort: sum
+reverse: true
+matching_groups:
+  - "/icons/.+.png"
+  - "/channel/[0-9]+"
+  - "/history/[0-9]+"
+  - "/profile/[a-zA-Z_]+"
+#    - "/items/[0-9]+.json"
+#    - "/new_items/[0-9]+.json"
+#    - "/users/[0-9]+.json"
+#    - "/transactions/[0-9]+.png"
+#  - "/images/*"
+#  - "/api/chair/[0-9]+"
+#  - "/api/chair/buy/[0-9]+"
+#  - "/api/estate/[0-9]+"
+#  - "/api/estate/req_doc/[0-9]+"
+#  - "/api/recommended_estate/[0-9]+"
+#  - "/_next/*"
+output: "count,1xx,2xx,3xx,4xx,5xx,method,uri,min,max,sum,avg,sum_body,avg_body"
+ltsv:
+  apptime_label:  apptime
+  status_label:   status
+  size_label:     size
+  method_label:   method
+  uri_label:      uri
+  time_label:     time
+# empty define
+json:
+  uri_key:           ""
+  method_key:        ""
+  time_key:          ""
+  response_time_key: ""
+  body_bytes_key:    ""
+  status_key:        ""
+regexp:
+  pattern:              ""
+  uri_subexp:           ""
+  method_subexp:        ""
+  time_subexp:          ""
+  response_time_subexp: ""
+  body_bytes_subexp:    ""
+  status_subexp:        ""

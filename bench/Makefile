@@ -7,3 +7,6 @@ build:
 .PHONY: race
 race:
 	GOPATH=`pwd`:`pwd`/vendor go install -race ./src/cmd/...
+
+run:
+	./bin/bench --remotes=nginx
