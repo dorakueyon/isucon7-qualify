@@ -494,7 +494,16 @@ func fetchUnread(c echo.Context) error {
 		return c.NoContent(http.StatusForbidden)
 	}
 
-	time.Sleep(time.Second)
+	//time.Sleep(time.Second)
+	query := "SELECT channel_id, message_id from  haveread WHERE user_id=?"
+	type HaveRead struct {
+		ChannelID int64 `db:"channel_id"`
+		MessageID int64 `db:"message_id"`
+	}
+	hrs := []HaveRead{}
+	err := db.Select(&hrs, query, userID)
+	fmt.Println("=============")
+	fmt.Println(hrs)
 
 	channels, err := queryChannels()
 	if err != nil {
@@ -504,9 +513,16 @@ func fetchUnread(c echo.Context) error {
 	resp := []map[string]interface{}{}
 
 	for _, chID := range channels {
-		lastID, err := queryHaveRead(userID, chID)
-		if err != nil {
-			return err
+		var lastID int64
+		//lastID, err := queryHaveRead(userID, chID)
+		for _, hr := range hrs {
+			if chID == hr.ChannelID {
+				lastID = hr.MessageID
+				break
+			}
+		}
+		if chID == 0 {
+			return fmt.Errorf("no chnnel id found.")
 		}
 
 		var cnt int64
