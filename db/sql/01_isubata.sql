@@ -27,7 +27,6 @@ CREATE TABLE channel (
 ) Engine = InnoDB DEFAULT CHARSET = utf8mb4;
 
 DROP TABLE IF EXISTS message;
-
 CREATE TABLE message (
   id BIGINT AUTO_INCREMENT NOT NULL PRIMARY KEY,
   channel_id BIGINT,
@@ -46,3 +45,4 @@ CREATE TABLE haveread (
   created_at DATETIME NOT NULL,
   PRIMARY KEY(user_id, channel_id)
 ) Engine = InnoDB DEFAULT CHARSET = utf8mb4;
+CREATE INDEX haveread_user_id_channel_id on haveread(user_id, channel_id);
