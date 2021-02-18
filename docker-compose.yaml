@@ -11,6 +11,8 @@ services:
   app:
     build:
       context: ./webapp
+    volumes:
+      - ./webapp:/home/isucon/isubata/webapp
     ports:
       - "5000:5000"
     depends_on:

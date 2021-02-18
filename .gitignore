@@ -11,3 +11,5 @@ webapp/perl/local
 *.log
 webapp/public/results
 db/sql/*.gz
+webapp/public/icons
+webapp/go/src/isubata

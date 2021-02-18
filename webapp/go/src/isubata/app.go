@@ -11,6 +11,7 @@ import (
 	"io/ioutil"
 	"log"
 	"math/rand"
+	"mime/multipart"
 	"net/http"
 	"os"
 	"strconv"
@@ -20,13 +21,15 @@ import (
 	"github.com/go-sql-driver/mysql"
 	"github.com/gorilla/sessions"
 	"github.com/jmoiron/sqlx"
-	"github.com/labstack/echo"
 	"github.com/labstack/echo-contrib/session"
-	"github.com/labstack/echo/middleware"
+	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
 )
 
 const (
-	avatarMaxBytes = 1 * 1024 * 1024
+	avatarMaxBytes            = 1 * 1024 * 1024
+	PROFILE_IMG_PATH          = "../../../public/icons"
+	PROFILE_IMG_REDIRECT_PATH = "/icons"
 )
 
 var (
@@ -200,7 +203,56 @@ func register(name, password string) (int64, error) {
 	return res.LastInsertId()
 }
 
-// request handlers
+func getInitializeIconImage(c echo.Context) error {
+	names := []string{}
+	query := "SELECT distinct(name) FROM image"
+	err := db.Select(&names, query)
+	if err != nil {
+		log.Fatalln(err)
+	}
+	for _, name := range names {
+		var data []byte
+		err := db.QueryRow("SELECT data FROM image WHERE name = ?", name).Scan(&data)
+		if err != nil {
+			log.Fatalln(err)
+		}
+
+		//img, _, err := image.Decode(bytes.NewReader(data))
+		//if err != nil {
+		//	fmt.Printf("decode error: file is %s\n", name)
+		//	log.Fatalln(err)
+		//}
+		filePath := fmt.Sprintf("%s/%s", PROFILE_IMG_PATH, name)
+		out, _ := os.Create(filePath)
+		defer out.Close()
+
+		_, err = out.Write(data)
+		if err != nil {
+			log.Println(err)
+		}
+
+		//dotPos := strings.LastIndexByte(name, '.')
+		//if dotPos < 0 {
+		//	log.Fatalln("error")
+		//}
+		//ext := name[dotPos:]
+
+		//switch ext {
+		//case ".jpg":
+		//	var opts jpeg.Options
+		//	err = jpeg.Encode(out, img, &opts)
+		//case ".png":
+		//	err = png.Encode(out, img)
+		//default:
+		//	log.Fatalln("unsupported file type")
+		//}
+		//if err != nil {
+		//	fmt.Printf("filename: %s\n", name)
+		//	log.Fatalln(err)
+		//}
+	}
+	return c.String(204, "")
+}
 
 func getInitialize(c echo.Context) error {
 	db.MustExec("DELETE FROM user WHERE id > 1000")
@@ -629,8 +681,9 @@ func postProfile(c echo.Context) error {
 
 	avatarName := ""
 	var avatarData []byte
-
-	if fh, err := c.FormFile("avatar_icon"); err == http.ErrMissingFile {
+	var fh *multipart.FileHeader
+	var ext string
+	if fh, err = c.FormFile("avatar_icon"); err == http.ErrMissingFile {
 		// no file upload
 	} else if err != nil {
 		return err
@@ -639,7 +692,7 @@ func postProfile(c echo.Context) error {
 		if dotPos < 0 {
 			return ErrBadReqeust
 		}
-		ext := fh.Filename[dotPos:]
+		ext = fh.Filename[dotPos:]
 		switch ext {
 		case ".jpg", ".jpeg", ".png", ".gif":
 			break
@@ -662,10 +715,21 @@ func postProfile(c echo.Context) error {
 	}
 
 	if avatarName != "" && len(avatarData) > 0 {
+
 		_, err := db.Exec("INSERT INTO image (name, data) VALUES (?, ?)", avatarName, avatarData)
 		if err != nil {
 			return err
 		}
+		// upload file to static folder
+		src, _ := fh.Open()
+		defer src.Close()
+		filePath := fmt.Sprintf("%s/%s", PROFILE_IMG_PATH, avatarName)
+		dst, err := os.Create(filePath)
+		defer dst.Close()
+		if _, err = io.Copy(dst, src); err != nil {
+			fmt.Println(err)
+		}
+
 		_, err = db.Exec("UPDATE user SET avatar_icon = ? WHERE id = ?", avatarName, self.ID)
 		if err != nil {
 			return err
@@ -683,29 +747,34 @@ func postProfile(c echo.Context) error {
 }
 
 func getIcon(c echo.Context) error {
-	var name string
-	var data []byte
-	err := db.QueryRow("SELECT name, data FROM image WHERE name = ?",
-		c.Param("file_name")).Scan(&name, &data)
-	if err == sql.ErrNoRows {
-		return echo.ErrNotFound
-	}
-	if err != nil {
-		return err
-	}
+	//var name string
+	//var data []byte
 
-	mime := ""
-	switch true {
-	case strings.HasSuffix(name, ".jpg"), strings.HasSuffix(name, ".jpeg"):
-		mime = "image/jpeg"
-	case strings.HasSuffix(name, ".png"):
-		mime = "image/png"
-	case strings.HasSuffix(name, ".gif"):
-		mime = "image/gif"
-	default:
-		return echo.ErrNotFound
-	}
-	return c.Blob(http.StatusOK, mime, data)
+	fileName := c.Param("file_name")
+	filePath := fmt.Sprintf("%s/%s", PROFILE_IMG_REDIRECT_PATH, fileName)
+	return c.Redirect(http.StatusFound, filePath)
+
+	//err := db.QueryRow("SELECT name, data FROM image WHERE name = ?",
+	//	fileName).Scan(&name, &data)
+	//if err == sql.ErrNoRows {
+	//	return echo.ErrNotFound
+	//}
+	//if err != nil {
+	//	return err
+	//}
+
+	//mime := ""
+	//switch true {
+	//case strings.HasSuffix(name, ".jpg"), strings.HasSuffix(name, ".jpeg"):
+	//	mime = "image/jpeg"
+	//case strings.HasSuffix(name, ".png"):
+	//	mime = "image/png"
+	//case strings.HasSuffix(name, ".gif"):
+	//	mime = "image/gif"
+	//default:
+	//	return echo.ErrNotFound
+	//}
+	//return c.Blob(http.StatusOK, mime, data)
 }
 
 func tAdd(a, b int64) int64 {
@@ -733,9 +802,10 @@ func main() {
 	e.Use(middleware.LoggerWithConfig(middleware.LoggerConfig{
 		Format: "request:\"${method} ${uri}\" status:${status} latency:${latency} (${latency_human}) bytes:${bytes_out}\n",
 	}))
-	e.Use(middleware.Static("../public"))
+	e.Use(middleware.Static("../../../public"))
 
 	e.GET("/initialize", getInitialize)
+	e.GET("/initialize_iconimage", getInitializeIconImage)
 	e.GET("/", getIndex)
 	e.GET("/register", getRegister)
 	e.POST("/register", postRegister)
@@ -754,7 +824,8 @@ func main() {
 
 	e.GET("add_channel", getAddChannel)
 	e.POST("add_channel", postAddChannel)
-	e.GET("/icons/:file_name", getIcon)
+	//e.GET("/icons/:file_name", getIcon)
+	//	e.Static("/icons", "public/imgs")
 
 	e.Start(":5000")
 }

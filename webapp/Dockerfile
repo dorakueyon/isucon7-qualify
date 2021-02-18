@@ -1,11 +1,16 @@
-FROM golang:1.9
+FROM golang:1.15
 
 WORKDIR /home/isucon/isubata/webapp
 COPY . .
 
 WORKDIR /home/isucon/isubata/webapp/go
-RUN make
+#RUN make
 
 EXPOSE 5000
 
-ENTRYPOINT ["/home/isucon/isubata/webapp/go/isubata"]
+RUN go get -u github.com/cosmtrek/air
+WORKDIR /home/isucon/isubata/webapp/go/src/isubata
+
+CMD ["air"]
+
+#ENTRYPOINT ["/home/isucon/isubata/webapp/go/isubata"]

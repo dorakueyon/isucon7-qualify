@@ -12,6 +12,9 @@ MYSQL_CMD:=mysql -h$(DB_HOST) -P$(DB_PORT) -u$(DB_USER) -p$(DB_PASS) $(DB_NAME)
 mysql:
 	${MYSQL_CMD}
 
+run:
+	docker-compose up
+
 before: 
 	#git pull
 	$(eval when := $(shell date "+%s"))
