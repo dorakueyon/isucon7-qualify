@@ -16,6 +16,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/go-sql-driver/mysql"
@@ -44,6 +45,11 @@ type Renderer struct {
 func (r *Renderer) Render(w io.Writer, name string, data interface{}, c echo.Context) error {
 	return r.templates.ExecuteTemplate(w, name, data)
 }
+
+var (
+	channelCountMap = make(map[int64]int64)
+	channelMapMux   = sync.RWMutex{}
+)
 
 func init() {
 	seedBuf := make([]byte, 8)
@@ -113,6 +119,12 @@ func addMessage(channelID, userID int64, content string) (int64, error) {
 		channelID, userID, content)
 	if err != nil {
 		return 0, err
+	}
+	channelMapMux.Lock()
+	defer channelMapMux.Unlock()
+	value, ok := channelCountMap[channelID]
+	if ok {
+		channelCountMap[channelID] = value + 1
 	}
 	return res.LastInsertId()
 }
@@ -260,6 +272,8 @@ func getInitialize(c echo.Context) error {
 	db.MustExec("DELETE FROM channel WHERE id > 10")
 	db.MustExec("DELETE FROM message WHERE id > 10000")
 	db.MustExec("DELETE FROM haveread")
+
+	channelCountMap = map[int64]int64{}
 	return c.String(204, "")
 }
 
@@ -562,9 +576,21 @@ func fetchUnread(c echo.Context) error {
 				"SELECT COUNT(*) as cnt FROM message WHERE channel_id = ? AND ? < id",
 				chID, lastID)
 		} else {
-			err = db.Get(&cnt,
-				"SELECT COUNT(*) as cnt FROM message WHERE channel_id = ?",
-				chID)
+			channelMapMux.RLock()
+			value, ok := channelCountMap[chID]
+			channelMapMux.RUnlock()
+			if ok {
+				fmt.Println("cache hit!!!")
+				cnt = value
+			} else {
+				fmt.Println("no cache ぴえん")
+				err = db.Get(&cnt,
+					"SELECT COUNT(*) as cnt FROM message WHERE channel_id = ?",
+					chID)
+				channelMapMux.Lock()
+				channelCountMap[chID] = cnt
+				channelMapMux.Unlock()
+			}
 		}
 		if err != nil {
 			return err
