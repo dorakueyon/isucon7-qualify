@@ -438,24 +438,55 @@ func getMessage(c echo.Context) error {
 		return err
 	}
 
+	if len(messages) == 0 {
+		noresponse := make([]map[string]interface{}, 0)
+		return c.JSON(http.StatusOK, noresponse)
+	}
+
+	var ids []int64
+	for i := len(messages) - 1; i >= 0; i-- {
+		m := messages[i]
+		ids = append(ids, m.UserID)
+	}
+	queue := "SELECT id, name, display_name, avatar_icon FROM user WHERE id IN (?)"
+	sql, params, err := sqlx.In(queue, ids)
+	if err != nil {
+		return err
+	}
+	users := []User{}
+	err = db.Select(&users, sql, params...)
+	if err != nil {
+		return err
+	}
+
 	response := make([]map[string]interface{}, 0)
 	for i := len(messages) - 1; i >= 0; i-- {
 		m := messages[i]
-		r, err := jsonifyMessage(m)
-		if err != nil {
-			return err
+		var user User
+		for _, u := range users {
+			if m.UserID == u.ID {
+				user = u
+				break
+			}
 		}
+		if (User{}) == user {
+			return fmt.Errorf("cannot find user")
+		}
+
+		r := make(map[string]interface{})
+		r["id"] = m.ID
+		r["user"] = user
+		r["date"] = m.CreatedAt.Format("2006/01/02 15:04:05")
+		r["content"] = m.Content
 		response = append(response, r)
 	}
 
-	if len(messages) > 0 {
-		_, err := db.Exec("INSERT INTO haveread (user_id, channel_id, message_id, updated_at, created_at)"+
-			" VALUES (?, ?, ?, NOW(), NOW())"+
-			" ON DUPLICATE KEY UPDATE message_id = ?, updated_at = NOW()",
-			userID, chanID, messages[0].ID, messages[0].ID)
-		if err != nil {
-			return err
-		}
+	_, err = db.Exec("INSERT INTO haveread (user_id, channel_id, message_id, updated_at, created_at)"+
+		" VALUES (?, ?, ?, NOW(), NOW())"+
+		" ON DUPLICATE KEY UPDATE message_id = ?, updated_at = NOW()",
+		userID, chanID, messages[0].ID, messages[0].ID)
+	if err != nil {
+		return err
 	}
 
 	return c.JSON(http.StatusOK, response)
@@ -494,7 +525,7 @@ func fetchUnread(c echo.Context) error {
 		return c.NoContent(http.StatusForbidden)
 	}
 
-	//time.Sleep(time.Second)
+	time.Sleep(time.Second * 2)
 	query := "SELECT channel_id, message_id from  haveread WHERE user_id=?"
 	type HaveRead struct {
 		ChannelID int64 `db:"channel_id"`
