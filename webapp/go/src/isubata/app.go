@@ -580,10 +580,8 @@ func fetchUnread(c echo.Context) error {
 			value, ok := channelCountMap[chID]
 			channelMapMux.RUnlock()
 			if ok {
-				fmt.Println("cache hit!!!")
 				cnt = value
 			} else {
-				fmt.Println("no cache ぴえん")
 				err = db.Get(&cnt,
 					"SELECT COUNT(*) as cnt FROM message WHERE channel_id = ?",
 					chID)
