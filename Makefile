@@ -13,7 +13,7 @@ mysql:
 	${MYSQL_CMD}
 
 run:
-	docker-compose up
+	docker-compose -f docker-compose.local.yaml up
 
 before:  FORCE
 	#git pull # comment off on isucon instance
