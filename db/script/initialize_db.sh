@@ -11,7 +11,7 @@ export MYSQL_PWD=${MYSQL_PASS:-isucon}
 export LANG="C.UTF-8"
 cd $CURRENT_DIR
 
-ls -1 ./*.sql | while read file
+ls -1 ../sql/*.sql | while read file
 do
   echo $file
   cat $file | mysql --defaults-file=/dev/null -h $MYSQL_HOST -P $MYSQL_PORT -u $MYSQL_USER $MYSQL_DBNAME
