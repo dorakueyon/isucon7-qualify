@@ -224,6 +224,7 @@ func getInitializeIconImage(c echo.Context) error {
 	}
 	for _, name := range names {
 		var data []byte
+		log.Println(name)
 		err := db.QueryRow("SELECT data FROM image WHERE name = ?", name).Scan(&data)
 		if err != nil {
 			log.Fatalln(err)
