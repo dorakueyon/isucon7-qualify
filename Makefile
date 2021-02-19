@@ -12,8 +12,16 @@ MYSQL_CMD:=mysql -h$(DB_HOST) -P$(DB_PORT) -u$(DB_USER) -p$(DB_PASS) $(DB_NAME)
 mysql:
 	${MYSQL_CMD}
 
-run:
+run-local:
 	docker-compose -f docker-compose.local.yaml up
+
+run-instance:
+	docker-compose -f docker-compose.yaml up
+
+
+
+run:
+	docker-compose up
 
 before:  FORCE
 	#git pull # comment off on isucon instance
