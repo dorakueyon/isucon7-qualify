@@ -539,7 +539,7 @@ func fetchUnread(c echo.Context) error {
 		return c.NoContent(http.StatusForbidden)
 	}
 
-	time.Sleep(time.Second * 2)
+	time.Sleep(time.Second * 1)
 	query := "SELECT channel_id, message_id from  haveread WHERE user_id=?"
 	type HaveRead struct {
 		ChannelID int64 `db:"channel_id"`
