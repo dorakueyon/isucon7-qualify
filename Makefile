@@ -35,6 +35,8 @@ dev: FORCE build
 	cd $(BUILD_DIR); \
 	./$(BIN_NAME)
 
+restart:
+	sudo systemctl restart isubata.golang.service
 
 before:  FORCE
 	#git pull # comment off on isucon instance
@@ -48,6 +50,7 @@ before:  FORCE
 	fi
 	sudo cp ./nginx/nginx.conf /etc/nginx/nginx.conf
 	sudo cp ./nginx/conf.d/my.conf /etc/nginx/conf.d/my.conf
+	sudo cp ./files/app/isubata.golang.service /etc/systemd/system/isubata.golang.service
 	#sudo cp my.cnf /etc/mysql/my.cnf
 	sudo systemctl restart nginx
 	# sudo systemctl restart mysql
