@@ -53,7 +53,7 @@ before:  FORCE
 	sudo cp ./files/app/isubata.golang.service /etc/systemd/system/isubata.golang.service
 	#sudo cp my.cnf /etc/mysql/my.cnf
 	sudo systemctl restart nginx
-	# sudo systemctl restart mysql
+	sudo systemctl restart mysqld.service
 
 
 alp: FORCE
