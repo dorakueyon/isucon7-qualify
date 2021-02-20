@@ -9,6 +9,7 @@ DB_NAME:=isubata
 
 PROJECT_ROOT:=/home/webservice/isucon7-qualify
 BUILD_DIR:=/home/webservice/isucon7-qualify/webapp/go
+SOURCE_DIR:=/home/webservice/isucon7-qualify/webapp/go/src/isubata
 BIN_NAME:=isubata
 
 MYSQL_CMD:=mysql -h$(DB_HOST) -P$(DB_PORT) -u$(DB_USER) -p$(DB_PASS) $(DB_NAME)
@@ -24,8 +25,11 @@ run-instance:
 
 build: FORCE
 	cd $(BUILD_DIR);\
-	make
+	go mod download
 
+build: FORCE
+	cd $(BUILD_DIR);\
+	go build -o $(BIN_NAME) $(SOURCE_DIR)
 dev: FORCE build
 	cd $(BUILD_DIR); \
 	./$(BIN_NAME)
