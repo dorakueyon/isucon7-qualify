@@ -23,13 +23,14 @@ run-local:
 run-instance:
 	docker-compose -f docker-compose.yaml up
 
-build: FORCE
+deps: FORCE
 	cd $(BUILD_DIR);\
 	go mod download
 
 build: FORCE
 	cd $(BUILD_DIR);\
 	go build -o $(BIN_NAME) $(SOURCE_DIR)
+
 dev: FORCE build
 	cd $(BUILD_DIR); \
 	./$(BIN_NAME)
