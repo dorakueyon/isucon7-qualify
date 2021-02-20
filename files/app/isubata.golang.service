@@ -5,8 +5,7 @@ Description = isucon7 qualifier main application in golang
 WorkingDirectory=/home/webservice/isucon7-qualify/webapp/go/
 EnvironmentFile=/home/webservice/isucon7-qualify/env.sh
 
-ExecStart = /home/isucon/isubata/webapp/go/isubata
-/home/webservice/isucon7-qualify/webapp/go/isubata
+ExecStart = /home/webservice/isucon7-qualify/webapp/go/isubata
 
 
 Restart   = always
