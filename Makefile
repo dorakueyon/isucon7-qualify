@@ -46,9 +46,10 @@ before:  FORCE
 	@if [ -f $(MYSQL_LOG) ]; then \
 		sudo mv -f $(MYSQL_LOG) ./log/$(when)/ ; \
 	fi
-	#sudo cp nginx.conf /etc/nginx/nginx.conf
+	sudo cp ./nginx/nginx.conf /etc/nginx/nginx.conf
+	sudo cp ./nginx/conf.d/my.conf /etc/nginx/conf.d/my.conf
 	#sudo cp my.cnf /etc/mysql/my.cnf
-	#sudo systemctl restart nginx
+	sudo systemctl restart nginx
 	# sudo systemctl restart mysql
 
 
