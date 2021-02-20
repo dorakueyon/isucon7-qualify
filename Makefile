@@ -7,6 +7,10 @@ DB_USER:=isucon
 DB_PASS:=isucon
 DB_NAME:=isubata
 
+PROJECT_ROOT:=/home/webservice/isucon7-qualify
+BUILD_DIR:=/home/webservice/isucon7-qualify/webapp/go
+BIN_NAME:=isubata
+
 MYSQL_CMD:=mysql -h$(DB_HOST) -P$(DB_PORT) -u$(DB_USER) -p$(DB_PASS) $(DB_NAME)
 
 mysql:
@@ -18,10 +22,14 @@ run-local:
 run-instance:
 	docker-compose -f docker-compose.yaml up
 
+build: FORCE
+	cd $(BUILD_DIR);\
+	make
 
+dev: FORCE build
+	cd $(BUILD_DIR); \
+	./$(BIN_NAME)
 
-run:
-	docker-compose up
 
 before:  FORCE
 	#git pull # comment off on isucon instance
