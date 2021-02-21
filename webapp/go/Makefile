@@ -6,3 +6,6 @@ build:
 
 vet:
 	go vet ./src/isubata/...
+
+initialize:
+	go run initialize_iconimage.go

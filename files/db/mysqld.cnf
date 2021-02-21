@@ -21,7 +21,7 @@
 # The following values assume you have at least 32M ram
 
 [mysqld_safe]
-socket		= /var/run/mysqld/mysqld.sock
+socket		= /var/lib/mysql/mysql.sock
 nice		= 0
 
 [mysqld]
@@ -30,8 +30,8 @@ nice		= 0
 #
 validate-password=OFF
 user		= mysql
-pid-file	= /var/run/mysqld/mysqld.pid
-socket		= /var/run/mysqld/mysqld.sock
+pid-file	= /var/lib/mysql/mysql.pid
+socket		= /var/lib/mysql/mysql.sock
 port		= 3306
 basedir		= /usr
 datadir		= /var/lib/mysql
@@ -41,7 +41,7 @@ skip-external-locking
 #
 # Instead of skip-networking the default is now to listen only on
 # localhost which is more compatible and is not less secure.
-#bind-address		= 127.0.0.1
+bind-address		= 0.0.0.0
 #
 # * Fine Tuning
 #
