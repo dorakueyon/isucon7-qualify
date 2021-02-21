@@ -29,7 +29,7 @@ import (
 
 const (
 	avatarMaxBytes            = 1 * 1024 * 1024
-	PROFILE_IMG_PATH          = "../../../public/icons"
+	PROFILE_IMG_PATH          = "../public/icons"
 	PROFILE_IMG_REDIRECT_PATH = "/icons"
 )
 
@@ -224,7 +224,6 @@ func getInitializeIconImage(c echo.Context) error {
 	}
 	for _, name := range names {
 		var data []byte
-		log.Println(name)
 		err := db.QueryRow("SELECT data FROM image WHERE name = ?", name).Scan(&data)
 		if err != nil {
 			log.Fatalln(err)
@@ -874,7 +873,7 @@ func main() {
 	e.Use(middleware.LoggerWithConfig(middleware.LoggerConfig{
 		Format: "request:\"${method} ${uri}\" status:${status} latency:${latency} (${latency_human}) bytes:${bytes_out}\n",
 	}))
-	e.Use(middleware.Static("../../../public"))
+	e.Use(middleware.Static("../public"))
 
 	e.GET("/initialize", getInitialize)
 	e.GET("/initialize_iconimage", getInitializeIconImage)
