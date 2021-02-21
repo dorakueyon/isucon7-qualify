@@ -51,7 +51,7 @@ before:  FORCE
 	sudo cp ./nginx/nginx.conf /etc/nginx/nginx.conf
 	sudo cp ./nginx/conf.d/my.conf /etc/nginx/conf.d/my.conf
 	sudo cp ./files/app/isubata.golang.service /etc/systemd/system/isubata.golang.service
-	#sudo cp my.cnf /etc/mysql/my.cnf
+	sudo cp ./files/db/mysqld.cnf /etc/mysql/my.cnf
 	sudo systemctl restart nginx
 	sudo systemctl restart mysqld.service
 
