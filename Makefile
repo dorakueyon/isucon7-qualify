@@ -36,6 +36,7 @@ dev: FORCE build
 	./$(BIN_NAME)
 
 restart:
+	sudo systemctl daemon-reload
 	sudo systemctl restart isubata.golang.service
 
 before:  FORCE
