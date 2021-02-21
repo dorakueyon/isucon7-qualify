@@ -10,8 +10,8 @@ ExecStart = /home/webservice/isucon7-qualify/webapp/go/isubata
 
 Restart   = always
 Type      = simple
-User      = isucon
-Group     = isucon
+User      = webservice
+Group     = webservice
 
 [Install]
 WantedBy = multi-user.target
