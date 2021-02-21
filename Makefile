@@ -41,6 +41,9 @@ restart:
 	sudo systemctl daemon-reload
 	sudo systemctl restart isubata.golang.service
 
+log: FORCE
+	sudo journalctl -u isubata.golang -n10 -f
+
 before:  FORCE
 	#git pull # comment off on isucon instance
 	$(eval when := $(shell date "+%s"))
