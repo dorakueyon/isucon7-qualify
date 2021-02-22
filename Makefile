@@ -27,9 +27,10 @@ deps: FORCE
 	cd $(BUILD_DIR);\
 	go mod download
 
-gachi: FORCE before build restart
+gachi: FORCE build before restart
 
 build: FORCE
+	git pull	
 	cd $(BUILD_DIR);\
 	go build -o $(BIN_NAME) $(SOURCE_DIR)
 
