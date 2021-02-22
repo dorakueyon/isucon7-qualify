@@ -28,7 +28,7 @@ nice		= 0
 #
 # * Basic Settings
 #
-validate-password=OFF
+#validate-password=OFF
 user		= mysql
 pid-file	= /var/lib/mysql/mysql.pid
 socket		= /var/lib/mysql/mysql.sock
