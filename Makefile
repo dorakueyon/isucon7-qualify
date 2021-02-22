@@ -54,21 +54,25 @@ before:  FORCE
 	#@if [ ssh 172.31.20.105  -f $(MYSQL_LOG) ]; then \
 	#	ssh 172.31.20.105 sudo mv -f $(MYSQL_LOG) ./log/$(when)/ ; \
 	#fi
+
+	# nginx
 	sudo cp ./nginx/nginx.conf /etc/nginx/nginx.conf
 	sudo cp ./nginx/conf.d/my.conf /etc/nginx/conf.d/my.conf
+	# mysql
 	sudo cp ./files/app/isubata.golang.service /etc/systemd/system/isubata.golang.service
 	#sudo cp ./files/db/mysqld.cnf /etc/mysql/my.cnf
-	scp ./files/db/mysqld.cnf 172.31.20.105:/etc/mysql/my.cnf
+	scp ./files/db/mysqld.cnf 172.31.28.127:~/mysqld.cnf
+	ssh  172.31.28.127 sudo cp ~/mysqld.cnf /etc/mysql/my.cnf
 	sudo systemctl restart nginx
 	#sudo systemctl restart mysqld.service
-	ssh 172.31.20.105 sudo systemctl restart mysqld.service
+	ssh 172.31.28.127 sudo systemctl restart mysqld.service
 
 
 alp: FORCE
 	sudo alp ltsv -c alp.yml
 
 pt: FORCE
-	ssh 172.31.20.105 sudo pt-query-digest $(MYSQL_LOG)
+	ssh 172.31.28.127 sudo pt-query-digest $(MYSQL_LOG)
 
 out: FORCE
 	./out.sh
