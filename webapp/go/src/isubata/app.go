@@ -11,6 +11,7 @@ import (
 	"io/ioutil"
 	"log"
 	"math/rand"
+	"mime/multipart"
 	"net/http"
 	"os"
 	"strconv"
@@ -20,13 +21,15 @@ import (
 	"github.com/go-sql-driver/mysql"
 	"github.com/gorilla/sessions"
 	"github.com/jmoiron/sqlx"
-	"github.com/labstack/echo"
 	"github.com/labstack/echo-contrib/session"
-	"github.com/labstack/echo/middleware"
+	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
 )
 
 const (
-	avatarMaxBytes = 1 * 1024 * 1024
+	avatarMaxBytes            = 1 * 1024 * 1024
+	PROFILE_IMG_PATH          = "../public/icons"
+	PROFILE_IMG_REDIRECT_PATH = "/icons"
 )
 
 var (
@@ -41,6 +44,11 @@ type Renderer struct {
 func (r *Renderer) Render(w io.Writer, name string, data interface{}, c echo.Context) error {
 	return r.templates.ExecuteTemplate(w, name, data)
 }
+
+//var (
+//	channelCountMap = make(map[int64]int64)
+//	channelMapMux   = sync.RWMutex{}
+//)
 
 func init() {
 	seedBuf := make([]byte, 8)
@@ -111,6 +119,12 @@ func addMessage(channelID, userID int64, content string) (int64, error) {
 	if err != nil {
 		return 0, err
 	}
+	//channelMapMux.Lock()
+	//defer channelMapMux.Unlock()
+	//value, ok := channelCountMap[channelID]
+	//if ok {
+	//	channelCountMap[channelID] = value + 1
+	//}
 	return res.LastInsertId()
 }
 
@@ -200,7 +214,56 @@ func register(name, password string) (int64, error) {
 	return res.LastInsertId()
 }
 
-// request handlers
+func getInitializeIconImage(c echo.Context) error {
+	names := []string{}
+	query := "SELECT distinct(name) FROM image"
+	err := db.Select(&names, query)
+	if err != nil {
+		log.Fatalln(err)
+	}
+	for _, name := range names {
+		var data []byte
+		err := db.QueryRow("SELECT data FROM image WHERE name = ?", name).Scan(&data)
+		if err != nil {
+			log.Fatalln(err)
+		}
+
+		//img, _, err := image.Decode(bytes.NewReader(data))
+		//if err != nil {
+		//	fmt.Printf("decode error: file is %s\n", name)
+		//	log.Fatalln(err)
+		//}
+		filePath := fmt.Sprintf("%s/%s", PROFILE_IMG_PATH, name)
+		out, _ := os.Create(filePath)
+		defer out.Close()
+
+		_, err = out.Write(data)
+		if err != nil {
+			log.Println(err)
+		}
+
+		//dotPos := strings.LastIndexByte(name, '.')
+		//if dotPos < 0 {
+		//	log.Fatalln("error")
+		//}
+		//ext := name[dotPos:]
+
+		//switch ext {
+		//case ".jpg":
+		//	var opts jpeg.Options
+		//	err = jpeg.Encode(out, img, &opts)
+		//case ".png":
+		//	err = png.Encode(out, img)
+		//default:
+		//	log.Fatalln("unsupported file type")
+		//}
+		//if err != nil {
+		//	fmt.Printf("filename: %s\n", name)
+		//	log.Fatalln(err)
+		//}
+	}
+	return c.String(204, "")
+}
 
 func getInitialize(c echo.Context) error {
 	db.MustExec("DELETE FROM user WHERE id > 1000")
@@ -208,6 +271,8 @@ func getInitialize(c echo.Context) error {
 	db.MustExec("DELETE FROM channel WHERE id > 10")
 	db.MustExec("DELETE FROM message WHERE id > 10000")
 	db.MustExec("DELETE FROM haveread")
+
+	//channelCountMap = map[int64]int64{}
 	return c.String(204, "")
 }
 
@@ -386,24 +451,55 @@ func getMessage(c echo.Context) error {
 		return err
 	}
 
+	if len(messages) == 0 {
+		noresponse := make([]map[string]interface{}, 0)
+		return c.JSON(http.StatusOK, noresponse)
+	}
+
+	var ids []int64
+	for i := len(messages) - 1; i >= 0; i-- {
+		m := messages[i]
+		ids = append(ids, m.UserID)
+	}
+	queue := "SELECT id, name, display_name, avatar_icon FROM user WHERE id IN (?)"
+	sql, params, err := sqlx.In(queue, ids)
+	if err != nil {
+		return err
+	}
+	users := []User{}
+	err = db.Select(&users, sql, params...)
+	if err != nil {
+		return err
+	}
+
 	response := make([]map[string]interface{}, 0)
 	for i := len(messages) - 1; i >= 0; i-- {
 		m := messages[i]
-		r, err := jsonifyMessage(m)
-		if err != nil {
-			return err
+		var user User
+		for _, u := range users {
+			if m.UserID == u.ID {
+				user = u
+				break
+			}
 		}
+		if (User{}) == user {
+			return fmt.Errorf("cannot find user")
+		}
+
+		r := make(map[string]interface{})
+		r["id"] = m.ID
+		r["user"] = user
+		r["date"] = m.CreatedAt.Format("2006/01/02 15:04:05")
+		r["content"] = m.Content
 		response = append(response, r)
 	}
 
-	if len(messages) > 0 {
-		_, err := db.Exec("INSERT INTO haveread (user_id, channel_id, message_id, updated_at, created_at)"+
-			" VALUES (?, ?, ?, NOW(), NOW())"+
-			" ON DUPLICATE KEY UPDATE message_id = ?, updated_at = NOW()",
-			userID, chanID, messages[0].ID, messages[0].ID)
-		if err != nil {
-			return err
-		}
+	_, err = db.Exec("INSERT INTO haveread (user_id, channel_id, message_id, updated_at, created_at)"+
+		" VALUES (?, ?, ?, NOW(), NOW())"+
+		" ON DUPLICATE KEY UPDATE message_id = ?, updated_at = NOW()",
+		userID, chanID, messages[0].ID, messages[0].ID)
+	if err != nil {
+		return err
 	}
 
 	return c.JSON(http.StatusOK, response)
@@ -442,7 +538,16 @@ func fetchUnread(c echo.Context) error {
 		return c.NoContent(http.StatusForbidden)
 	}
 
-	time.Sleep(time.Second)
+	time.Sleep(time.Second * 1)
+	query := "SELECT channel_id, message_id from  haveread WHERE user_id=?"
+	type HaveRead struct {
+		ChannelID int64 `db:"channel_id"`
+		MessageID int64 `db:"message_id"`
+	}
+	hrs := []HaveRead{}
+	err := db.Select(&hrs, query, userID)
+	fmt.Println("=============")
+	fmt.Println(hrs)
 
 	channels, err := queryChannels()
 	if err != nil {
@@ -452,9 +557,16 @@ func fetchUnread(c echo.Context) error {
 	resp := []map[string]interface{}{}
 
 	for _, chID := range channels {
-		lastID, err := queryHaveRead(userID, chID)
-		if err != nil {
-			return err
+		var lastID int64
+		//lastID, err := queryHaveRead(userID, chID)
+		for _, hr := range hrs {
+			if chID == hr.ChannelID {
+				lastID = hr.MessageID
+				break
+			}
+		}
+		if chID == 0 {
+			return fmt.Errorf("no chnnel id found.")
 		}
 
 		var cnt int64
@@ -463,9 +575,19 @@ func fetchUnread(c echo.Context) error {
 				"SELECT COUNT(*) as cnt FROM message WHERE channel_id = ? AND ? < id",
 				chID, lastID)
 		} else {
+			//channelMapMux.RLock()
+			//value, ok := channelCountMap[chID]
+			//channelMapMux.RUnlock()
+			//if ok {
+			//	cnt = value
+			//} else {
 			err = db.Get(&cnt,
 				"SELECT COUNT(*) as cnt FROM message WHERE channel_id = ?",
 				chID)
+			//channelMapMux.Lock()
+			//channelCountMap[chID] = cnt
+			//channelMapMux.Unlock()
+			//}
 		}
 		if err != nil {
 			return err
@@ -629,8 +751,9 @@ func postProfile(c echo.Context) error {
 
 	avatarName := ""
 	var avatarData []byte
-
-	if fh, err := c.FormFile("avatar_icon"); err == http.ErrMissingFile {
+	var fh *multipart.FileHeader
+	var ext string
+	if fh, err = c.FormFile("avatar_icon"); err == http.ErrMissingFile {
 		// no file upload
 	} else if err != nil {
 		return err
@@ -639,7 +762,7 @@ func postProfile(c echo.Context) error {
 		if dotPos < 0 {
 			return ErrBadReqeust
 		}
-		ext := fh.Filename[dotPos:]
+		ext = fh.Filename[dotPos:]
 		switch ext {
 		case ".jpg", ".jpeg", ".png", ".gif":
 			break
@@ -662,10 +785,21 @@ func postProfile(c echo.Context) error {
 	}
 
 	if avatarName != "" && len(avatarData) > 0 {
+
 		_, err := db.Exec("INSERT INTO image (name, data) VALUES (?, ?)", avatarName, avatarData)
 		if err != nil {
 			return err
 		}
+		// upload file to static folder
+		src, _ := fh.Open()
+		defer src.Close()
+		filePath := fmt.Sprintf("%s/%s", PROFILE_IMG_PATH, avatarName)
+		dst, err := os.Create(filePath)
+		defer dst.Close()
+		if _, err = io.Copy(dst, src); err != nil {
+			fmt.Println(err)
+		}
+
 		_, err = db.Exec("UPDATE user SET avatar_icon = ? WHERE id = ?", avatarName, self.ID)
 		if err != nil {
 			return err
@@ -683,29 +817,34 @@ func postProfile(c echo.Context) error {
 }
 
 func getIcon(c echo.Context) error {
-	var name string
-	var data []byte
-	err := db.QueryRow("SELECT name, data FROM image WHERE name = ?",
-		c.Param("file_name")).Scan(&name, &data)
-	if err == sql.ErrNoRows {
-		return echo.ErrNotFound
-	}
-	if err != nil {
-		return err
-	}
+	//var name string
+	//var data []byte
 
-	mime := ""
-	switch true {
-	case strings.HasSuffix(name, ".jpg"), strings.HasSuffix(name, ".jpeg"):
-		mime = "image/jpeg"
-	case strings.HasSuffix(name, ".png"):
-		mime = "image/png"
-	case strings.HasSuffix(name, ".gif"):
-		mime = "image/gif"
-	default:
-		return echo.ErrNotFound
-	}
-	return c.Blob(http.StatusOK, mime, data)
+	fileName := c.Param("file_name")
+	filePath := fmt.Sprintf("%s/%s", PROFILE_IMG_REDIRECT_PATH, fileName)
+	return c.Redirect(http.StatusFound, filePath)
+
+	//err := db.QueryRow("SELECT name, data FROM image WHERE name = ?",
+	//	fileName).Scan(&name, &data)
+	//if err == sql.ErrNoRows {
+	//	return echo.ErrNotFound
+	//}
+	//if err != nil {
+	//	return err
+	//}
+
+	//mime := ""
+	//switch true {
+	//case strings.HasSuffix(name, ".jpg"), strings.HasSuffix(name, ".jpeg"):
+	//	mime = "image/jpeg"
+	//case strings.HasSuffix(name, ".png"):
+	//	mime = "image/png"
+	//case strings.HasSuffix(name, ".gif"):
+	//	mime = "image/gif"
+	//default:
+	//	return echo.ErrNotFound
+	//}
+	//return c.Blob(http.StatusOK, mime, data)
 }
 
 func tAdd(a, b int64) int64 {
@@ -736,6 +875,7 @@ func main() {
 	e.Use(middleware.Static("../public"))
 
 	e.GET("/initialize", getInitialize)
+	e.GET("/initialize_iconimage", getInitializeIconImage)
 	e.GET("/", getIndex)
 	e.GET("/register", getRegister)
 	e.POST("/register", postRegister)
@@ -754,7 +894,8 @@ func main() {
 
 	e.GET("add_channel", getAddChannel)
 	e.POST("add_channel", postAddChannel)
-	e.GET("/icons/:file_name", getIcon)
+	//e.GET("/icons/:file_name", getIcon)
+	//	e.Static("/icons", "public/imgs")
 
 	e.Start(":5000")
 }
