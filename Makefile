@@ -1,8 +1,8 @@
-MYSQL_LOG:=./log/mysql/slow.log
-NGX_LOG:=./log/nginx/access.log
+MYSQL_LOG:=/var//log/mysql/slow.log
+NGX_LOG:=/var/log/nginx/access.log
 
 DB_HOST:=127.0.0.1
-DB_PORT:=3306
+DB_PORT:=63306
 DB_USER:=isucon
 DB_PASS:=isucon
 DB_NAME:=isubata
@@ -45,28 +45,30 @@ log: FORCE
 	sudo journalctl -u isubata.golang -n10 -f
 
 before:  FORCE
-	#git pull # comment off on isucon instance
+	git pull
 	$(eval when := $(shell date "+%s"))
 	mkdir -p ./log/$(when)
 	@if [ -f $(NGX_LOG) ]; then \
 		sudo mv -f $(NGX_LOG) ./log/$(when)/ ; \
 	fi
-	@if [ -f $(MYSQL_LOG) ]; then \
-		sudo mv -f $(MYSQL_LOG) ./log/$(when)/ ; \
+	@if [ ssh 172.31.20.105  -f $(MYSQL_LOG) ]; then \
+		ssh 172.31.20.105 sudo mv -f $(MYSQL_LOG) ./log/$(when)/ ; \
 	fi
 	sudo cp ./nginx/nginx.conf /etc/nginx/nginx.conf
 	sudo cp ./nginx/conf.d/my.conf /etc/nginx/conf.d/my.conf
 	sudo cp ./files/app/isubata.golang.service /etc/systemd/system/isubata.golang.service
-	sudo cp ./files/db/mysqld.cnf /etc/mysql/my.cnf
+	#sudo cp ./files/db/mysqld.cnf /etc/mysql/my.cnf
+	ssh scp ./files/db/mysqld.cnf 172.31.20.105:/etc/mysql/my.cnf
 	sudo systemctl restart nginx
-	sudo systemctl restart mysqld.service
+	#sudo systemctl restart mysqld.service
+	ssh 172.31.20.105 sudo systemctl restart mysqld.service
 
 
 alp: FORCE
 	sudo alp ltsv -c alp.yml
 
 pt: FORCE
-	sudo pt-query-digest $(MYSQL_LOG)
+	ssh 172.31.20.105 sudo pt-query-digest $(MYSQL_LOG)
 
 out: FORCE
 	./out.sh
