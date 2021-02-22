@@ -605,10 +605,10 @@ func fetchUnread(c echo.Context) error {
 		r := map[string]interface{}{
 			"channel_id": chID,
 			"unread":     cnt}
-		fmt.Println(r)
 		resp = append(resp, r)
 	}
 
+	fmt.Println(resp)
 	return c.JSON(http.StatusOK, resp)
 }
 
