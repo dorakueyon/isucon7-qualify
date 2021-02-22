@@ -35,8 +35,8 @@ build: FORCE
 	
 	
 another-app: FORCE
-	scp -r ~/isucon7-qualify/webapp 172.31.23.229:/home/wevservice/isucon7-qualify/webapp
-	scp ~/isucon7-qualify/files/app/isubata.golang.service 172.31.23.229:/home/wevservice/isucon7-qualify/files/app/isubata.golang.service
+	scp -r ~/isucon7-qualify/webapp 172.31.23.229:/home/webservice/isucon7-qualify/webapp
+	scp ~/isucon7-qualify/files/app/isubata.golang.service 172.31.23.229:/home/webservice/isucon7-qualify/files/app/isubata.golang.service
 	ssh 172.31.23.229 sudo cp ~/isucon7-qualify/files/app/isubata.golang.service /etc/systemd/system/isubata.golang.service
 
 dev: FORCE build
