@@ -36,10 +36,17 @@ build: FORCE
 dev: FORCE build
 	cd $(BUILD_DIR); \
 	./$(BIN_NAME)
+	ssh 172.31.23.229 cd $(BUILD_DIR); \
+	./$(BIN_NAME)
+
+
 
 restart:
 	sudo systemctl daemon-reload
 	sudo systemctl restart isubata.golang.service
+	ssh 172.31.23.229 sudo systemctl daemon-reload
+	ssh 172.31.23.229 sudo systemctl restart isubata.golang.service
+
 
 log: FORCE
 	sudo journalctl -u isubata.golang -n10 -f
@@ -66,6 +73,9 @@ before:  FORCE
 	sudo systemctl restart nginx
 	#sudo systemctl restart mysqld.service
 	ssh 172.31.28.127 sudo systemctl restart mysqld.service
+	# another app
+	scp -r /home/webservice/isucon7-qualify 172.31.23.229:/home/webservice/
+	ssh 172.31.23.229 sudo cp ~/files/app/isubata.golang.service /etc/systemd/system/isubata.golang.service
 
 
 alp: FORCE
