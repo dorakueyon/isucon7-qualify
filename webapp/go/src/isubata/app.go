@@ -539,35 +539,45 @@ func fetchUnread(c echo.Context) error {
 	}
 
 	time.Sleep(time.Second * 1)
-	query := "SELECT channel_id, message_id from  haveread WHERE user_id=?"
-	type HaveRead struct {
-		ChannelID int64 `db:"channel_id"`
-		MessageID int64 `db:"message_id"`
-	}
-	hrs := []HaveRead{}
-	err := db.Select(&hrs, query, userID)
-	fmt.Println("=============")
-	fmt.Println(hrs)
 
 	channels, err := queryChannels()
 	if err != nil {
 		return err
 	}
 
+	query := "SELECT channel_id, message_id from  haveread WHERE user_id=? AND channel_id IN (?) order by updated_at desc;"
+	query, args, err := sqlx.In(query, userID, channels)
+	if err != nil {
+		return err
+	}
+	type HaveRead struct {
+		ChannelID int64 `db:"channel_id"`
+		MessageID int64 `db:"message_id"`
+	}
+	hrs := []HaveRead{}
+	err = db.Select(&hrs, query, args...)
+	if err != nil {
+		return err
+	}
+	fmt.Println("=============")
+	fmt.Println(hrs)
+
+	haveReadMap := map[int64]int64{}
+	for _, hr := range hrs {
+		haveReadMap[hr.ChannelID] = hr.MessageID
+	}
+
 	resp := []map[string]interface{}{}
+	//noHaveReadIdChannels := []string{}
 
 	for _, chID := range channels {
 		var lastID int64
 		//lastID, err := queryHaveRead(userID, chID)
-		for _, hr := range hrs {
-			if chID == hr.ChannelID {
-				lastID = hr.MessageID
-				break
-			}
-		}
-		if chID == 0 {
-			return fmt.Errorf("no chnnel id found.")
-		}
+		lastID = haveReadMap[chID]
+
+		//if lastID == 0 {
+		//	noHaveReadIdChannels = append(noHaveReadIdChannels)
+		//}
 
 		var cnt int64
 		if lastID > 0 {
