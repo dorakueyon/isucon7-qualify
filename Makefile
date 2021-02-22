@@ -27,12 +27,17 @@ deps: FORCE
 	cd $(BUILD_DIR);\
 	go mod download
 
-gachi: FORCE build before restart
+gachi: FORCE log-clean before build another-app restart
 
 build: FORCE
-	git pull	
 	cd $(BUILD_DIR);\
 	go build -o $(BIN_NAME) $(SOURCE_DIR)
+	
+	
+another-app: FORCE
+	scp ~/isucon7-qualify/webapp 172.31.23.229:/home/wevservice/isucon7-qualify/webapp
+	scp ~/isucon7-qualify/files/app/isubata.golang.service 172.31.23.229:/home/wevservice/isucon7-qualify/files/app/isubata.golang.service
+	ssh 172.31.23.229 sudo cp ~/isucon7-qualify/files/app/isubata.golang.service /etc/systemd/system/isubata.golang.service
 
 dev: FORCE build
 	cd $(BUILD_DIR); \
@@ -40,11 +45,10 @@ dev: FORCE build
 	ssh 172.31.23.229 cd $(BUILD_DIR); \
 	./$(BIN_NAME)
 
-
-
 restart:
 	sudo systemctl daemon-reload
 	sudo systemctl restart isubata.golang.service
+	# another app
 	ssh 172.31.23.229 sudo systemctl daemon-reload
 	ssh 172.31.23.229 sudo systemctl restart isubata.golang.service
 
@@ -52,8 +56,7 @@ restart:
 log: FORCE
 	sudo journalctl -u isubata.golang -n10 -f
 
-before:  FORCE
-	git pull
+log-clean:  FORCE
 	$(eval when := $(shell date "+%s"))
 	mkdir -p ./log/$(when)
 	@if [ -f $(NGX_LOG) ]; then \
@@ -63,20 +66,19 @@ before:  FORCE
 	#	ssh 172.31.20.105 sudo mv -f $(MYSQL_LOG) ./log/$(when)/ ; \
 	#fi
 
+before:  FORCE
+	git pull
 	# nginx
 	sudo cp ./nginx/nginx.conf /etc/nginx/nginx.conf
 	sudo cp ./nginx/conf.d/my.conf /etc/nginx/conf.d/my.conf
+	sudo systemctl restart nginx
 	# mysql
 	sudo cp ./files/app/isubata.golang.service /etc/systemd/system/isubata.golang.service
 	#sudo cp ./files/db/mysqld.cnf /etc/mysql/my.cnf
 	scp ./files/db/mysqld.cnf 172.31.28.127:~/mysqld.cnf
 	ssh  172.31.28.127 sudo cp ~/mysqld.cnf /etc/mysql/my.cnf
-	sudo systemctl restart nginx
 	#sudo systemctl restart mysqld.service
 	ssh 172.31.28.127 sudo systemctl restart mysqld.service
-	# another app
-	scp -r /home/webservice/isucon7-qualify 172.31.23.229:/home/webservice/
-	ssh 172.31.23.229 sudo cp ~/isucon7-qualify/files/app/isubata.golang.service /etc/systemd/system/isubata.golang.service
 
 
 alp: FORCE
