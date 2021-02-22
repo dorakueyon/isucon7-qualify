@@ -51,14 +51,14 @@ before:  FORCE
 	@if [ -f $(NGX_LOG) ]; then \
 		sudo mv -f $(NGX_LOG) ./log/$(when)/ ; \
 	fi
-	@if [ ssh 172.31.20.105  -f $(MYSQL_LOG) ]; then \
-		ssh 172.31.20.105 sudo mv -f $(MYSQL_LOG) ./log/$(when)/ ; \
-	fi
+	#@if [ ssh 172.31.20.105  -f $(MYSQL_LOG) ]; then \
+	#	ssh 172.31.20.105 sudo mv -f $(MYSQL_LOG) ./log/$(when)/ ; \
+	#fi
 	sudo cp ./nginx/nginx.conf /etc/nginx/nginx.conf
 	sudo cp ./nginx/conf.d/my.conf /etc/nginx/conf.d/my.conf
 	sudo cp ./files/app/isubata.golang.service /etc/systemd/system/isubata.golang.service
 	#sudo cp ./files/db/mysqld.cnf /etc/mysql/my.cnf
-	ssh scp ./files/db/mysqld.cnf 172.31.20.105:/etc/mysql/my.cnf
+	scp ./files/db/mysqld.cnf 172.31.20.105:/etc/mysql/my.cnf
 	sudo systemctl restart nginx
 	#sudo systemctl restart mysqld.service
 	ssh 172.31.20.105 sudo systemctl restart mysqld.service
