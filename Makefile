@@ -75,7 +75,7 @@ before:  FORCE
 	ssh 172.31.28.127 sudo systemctl restart mysqld.service
 	# another app
 	scp -r /home/webservice/isucon7-qualify 172.31.23.229:/home/webservice/
-	ssh 172.31.23.229 sudo cp ~/files/app/isubata.golang.service /etc/systemd/system/isubata.golang.service
+	ssh 172.31.23.229 sudo cp ~/isucon7-qualify/files/app/isubata.golang.service /etc/systemd/system/isubata.golang.service
 
 
 alp: FORCE
