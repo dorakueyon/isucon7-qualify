@@ -9,8 +9,8 @@ WORKDIR /home/isucon/isubata/webapp/go
 EXPOSE 5000
 
 RUN go get -u github.com/cosmtrek/air
-WORKDIR /home/isucon/isubata/webapp/go/src/isubata
+WORKDIR /home/isucon/isubata/webapp/go
 
-CMD ["air"]
+CMD ["air", "-c", "air.toml"]
 
 #ENTRYPOINT ["/home/isucon/isubata/webapp/go/isubata"]

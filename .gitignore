@@ -2,6 +2,7 @@
 *.swp
 *.swo
 *.pyc
+*.rdb
 .idea/
 webapp/php/vendor
 bench/isucon7q-initial-dataset.sql.gz
@@ -13,3 +14,6 @@ webapp/public/results
 db/sql/*.gz
 webapp/public/icons
 webapp/go/src/isubata
+webapp/go/tmp/main
+
+

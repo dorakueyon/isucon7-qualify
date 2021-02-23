@@ -17,10 +17,18 @@ services:
       - "5000:5000"
     depends_on:
       - db
+      - redis
     environment:
       ISUBATA_DB_HOST: db
       ISUBATA_DB_USER: isucon
       ISUBATA_DB_PASSWORD: isucon
+      REDIS_HOST: redis
+  redis:
+    image: redis:latest
+    ports:
+      - "6379:6379"
+    volumes:
+      - ./redis/data:/data
   db:
     image: mysql:5.7
     command: mysqld --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
@@ -38,7 +46,7 @@ services:
   nginx:
     image: nginx:1.17
     volumes:
-      - ./nginx/conf.d:/etc/nginx/conf.d
+      - ./nginx/conf.d/my.local.conf:/etc/nginx/conf.d/default.conf
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf
       - ./log/nginx:/var/log/nginx
       - ./webapp/public:/www/public
