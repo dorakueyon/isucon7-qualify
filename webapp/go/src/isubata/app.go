@@ -303,14 +303,16 @@ func getInitialize(c echo.Context) error {
 
 func RedisInitialize() error {
 	redisClient.FlushAll()
+
 	type ChannelCount struct {
-		ChannelID int64 `db: "channel_id"`
-		Cnt       int64 `db: "cnt"`
+		ChannelID int64 `db:"channel_id"`
+		Cnt       int64 `db:"cnt"`
 	}
 	var channelCouns []ChannelCount
 	query := "SELECT channel_id, COUNT(1) cnt FROM message GROUP BY channel_id"
 	err := db.Select(&channelCouns, query)
 	if err != nil {
+		log.Println(err)
 		return err
 	}
 	for _, cc := range channelCouns {
