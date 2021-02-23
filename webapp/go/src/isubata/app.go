@@ -953,6 +953,10 @@ func setChannelCount(chanId, cnt int64) {
 
 func incrChannelCount(chanId int64) {
 	key := fmt.Sprintf("channel-count-%d", chanId)
+	_, err := redisClient.Get(key).Int64()
+	if err != nil {
+		return
+	}
 	redisClient.Incr(key)
 }
 
