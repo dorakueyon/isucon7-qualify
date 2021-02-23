@@ -18,6 +18,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/go-redis/redis"
 	"github.com/go-sql-driver/mysql"
 	"github.com/gorilla/sessions"
 	"github.com/jmoiron/sqlx"
@@ -49,6 +50,13 @@ func (r *Renderer) Render(w io.Writer, name string, data interface{}, c echo.Con
 //	channelCountMap = make(map[int64]int64)
 //	channelMapMux   = sync.RWMutex{}
 //)
+var (
+	redisClient *redis.Client
+)
+
+const (
+	REDIS_CACHED_MINUITE = time.Minute * 60
+)
 
 func init() {
 	seedBuf := make([]byte, 8)
@@ -88,6 +96,18 @@ func init() {
 
 	db.SetMaxOpenConns(20)
 	db.SetConnMaxLifetime(5 * time.Minute)
+
+	// redis
+	redis_host := os.Getenv("REDIS_HOST")
+	if redis_host == "" {
+		redis_host = "127.0.0.1"
+	}
+	redisClient = redis.NewClient(&redis.Options{
+		Addr:     fmt.Sprintf("%s:6379", redis_host),
+		Password: "",
+		DB:       0,
+	})
+
 	log.Printf("Succeeded to connect db.")
 }
 
@@ -125,6 +145,7 @@ func addMessage(channelID, userID int64, content string) (int64, error) {
 	//if ok {
 	//	channelCountMap[channelID] = value + 1
 	//}
+	incrChannelCount(channelID)
 	return res.LastInsertId()
 }
 
@@ -596,6 +617,7 @@ func fetchUnread(c echo.Context) error {
 				chID)
 			//channelMapMux.Lock()
 			//channelCountMap[chID] = cnt
+			setChannelCount(chID, cnt)
 			//channelMapMux.Unlock()
 			//}
 		}
@@ -909,4 +931,21 @@ func main() {
 	//	e.Static("/icons", "public/imgs")
 
 	e.Start(":5000")
+}
+
+// for redis
+func setChannelCount(chanId, cnt int64) {
+	key := fmt.Sprintf("channel-count-%d", chanId)
+	redisClient.Set(key, cnt, REDIS_CACHED_MINUITE).Err()
+}
+
+func incrChannelCount(chanId int64) {
+	key := fmt.Sprintf("channel-count-%d", chanId)
+	redisClient.Incr(key)
+}
+
+func getChannelCount(chanId int64) int64 {
+	key := fmt.Sprintf("channel-count-%d", chanId)
+	val, _ := redisClient.Get(key).Int64()
+	return val
 }
