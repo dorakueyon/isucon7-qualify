@@ -107,6 +107,14 @@ func init() {
 		Password: "",
 		DB:       0,
 	})
+	for {
+		_, err := redisClient.Ping().Result()
+		if err == nil {
+			break
+		}
+		log.Println(err)
+		time.Sleep(time.Second * 3)
+	}
 
 	log.Printf("Succeeded to connect db.")
 }
