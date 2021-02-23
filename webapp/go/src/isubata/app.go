@@ -604,8 +604,6 @@ func fetchUnread(c echo.Context) error {
 	if err != nil {
 		return err
 	}
-	fmt.Println("=============")
-	fmt.Println(hrs)
 
 	haveReadMap := map[int64]int64{}
 	for _, hr := range hrs {
@@ -643,7 +641,6 @@ func fetchUnread(c echo.Context) error {
 		resp = append(resp, r)
 	}
 
-	fmt.Println(resp)
 	return c.JSON(http.StatusOK, resp)
 }
 
