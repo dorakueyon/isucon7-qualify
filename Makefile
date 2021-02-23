@@ -92,11 +92,10 @@ alp: FORCE
 	sudo alp ltsv -c alp.yml
 
 pt: FORCE
-	ssh 172.31.28.127 sudo pt-query-digest $(MYSQL_LOG)
+	ssh 172.31.28.127 sudo cat $(MYSQL_LOG) | pt-query-digest
 
 out: FORCE
 	./out.sh
-
 
 setup: FORCE
 	sudo yum install -y wget unzip percona-toolkit
