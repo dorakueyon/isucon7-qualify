@@ -294,6 +294,13 @@ func getInitialize(c echo.Context) error {
 	db.MustExec("DELETE FROM haveread")
 
 	//channelCountMap = map[int64]int64{}
+	// redis
+	keys, err := redisClient.Keys("*").Result()
+	if err != nil {
+		log.Fatalln(err)
+	}
+	redisClient.Del(keys...)
+
 	return c.String(204, "")
 }
 
@@ -612,14 +619,19 @@ func fetchUnread(c echo.Context) error {
 			//if ok {
 			//	cnt = value
 			//} else {
-			err = db.Get(&cnt,
-				"SELECT COUNT(*) as cnt FROM message WHERE channel_id = ?",
-				chID)
-			//channelMapMux.Lock()
-			//channelCountMap[chID] = cnt
-			setChannelCount(chID, cnt)
-			//channelMapMux.Unlock()
-			//}
+			redisCnt, err := getChannelCount(chID)
+			if err == nil {
+				cnt = redisCnt
+			} else {
+				err = db.Get(&cnt,
+					"SELECT COUNT(*) as cnt FROM message WHERE channel_id = ?",
+					chID)
+				//channelMapMux.Lock()
+				//channelCountMap[chID] = cnt
+				setChannelCount(chID, cnt)
+				//channelMapMux.Unlock()
+				//}
+			}
 		}
 		if err != nil {
 			return err
@@ -944,8 +956,11 @@ func incrChannelCount(chanId int64) {
 	redisClient.Incr(key)
 }
 
-func getChannelCount(chanId int64) int64 {
+func getChannelCount(chanId int64) (int64, error) {
 	key := fmt.Sprintf("channel-count-%d", chanId)
-	val, _ := redisClient.Get(key).Int64()
-	return val
+	val, err := redisClient.Get(key).Int64()
+	if err != nil {
+		return 0, err
+	}
+	return val, nil
 }
