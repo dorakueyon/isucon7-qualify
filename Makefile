@@ -1,4 +1,4 @@
-MYSQL_LOG:=/var//log/mysql/slow.log
+MYSQL_LOG:=/var/log/mysql/slow.log
 NGX_LOG:=/var/log/nginx/access.log
 
 DB_HOST:=127.0.0.1
@@ -67,9 +67,11 @@ log-clean:  FORCE
 	@if [ -f $(NGX_LOG) ]; then \
 		sudo mv -f $(NGX_LOG) ./log/$(when)/ ; \
 	fi
+	
 	#@if [ ssh 172.31.20.105  -f $(MYSQL_LOG) ]; then \
 	#	ssh 172.31.20.105 sudo mv -f $(MYSQL_LOG) ./log/$(when)/ ; \
 	#fi
+	ssh  172.31.28.127 sudo rm ${MYSQL_LOG}
 
 before:  FORCE
 	git pull
