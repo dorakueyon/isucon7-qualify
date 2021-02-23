@@ -294,14 +294,29 @@ func getInitialize(c echo.Context) error {
 	db.MustExec("DELETE FROM haveread")
 
 	//channelCountMap = map[int64]int64{}
-	// redis
-	keys, err := redisClient.Keys("*").Result()
+	err := RedisInitialize()
 	if err != nil {
-		log.Fatalln(err)
+		return err
 	}
-	redisClient.Del(keys...)
-
 	return c.String(204, "")
+}
+
+func RedisInitialize() error {
+	redisClient.FlushAll()
+	type ChannelCount struct {
+		ChannelID int64 `db: "channel_id"`
+		Cnt       int64 `db: "cnt"`
+	}
+	var channelCouns []ChannelCount
+	query := "SELECT channel_id, COUNT(1) cnt FROM message GROUP BY channel_id"
+	err := db.Select(&channelCouns, query)
+	if err != nil {
+		return err
+	}
+	for _, cc := range channelCouns {
+		setChannelCount(cc.ChannelID, cc.Cnt)
+	}
+	return nil
 }
 
 func getIndex(c echo.Context) error {
@@ -613,26 +628,10 @@ func fetchUnread(c echo.Context) error {
 				"SELECT COUNT(*) as cnt FROM message WHERE channel_id = ? AND ? < id",
 				chID, lastID)
 		} else {
-			//channelMapMux.RLock()
-			//value, ok := channelCountMap[chID]
-			//channelMapMux.RUnlock()
-			//if ok {
-			//	cnt = value
-			//} else {
-			redisCnt, err := getChannelCount(chID)
-			if err == nil {
-				cnt = redisCnt
-			} else {
-				err = db.Get(&cnt,
-					"SELECT COUNT(*) as cnt FROM message WHERE channel_id = ?",
-					chID)
-				//channelMapMux.Lock()
-				//channelCountMap[chID] = cnt
-				setChannelCount(chID, cnt)
-				//channelMapMux.Unlock()
-				//}
-			}
+			redisCnt := getChannelCount(chID)
+			cnt = redisCnt
 		}
+
 		if err != nil {
 			return err
 		}
@@ -953,18 +952,11 @@ func setChannelCount(chanId, cnt int64) {
 
 func incrChannelCount(chanId int64) {
 	key := fmt.Sprintf("channel-count-%d", chanId)
-	_, err := redisClient.Get(key).Int64()
-	if err != nil {
-		return
-	}
 	redisClient.Incr(key)
 }
 
-func getChannelCount(chanId int64) (int64, error) {
+func getChannelCount(chanId int64) int64 {
 	key := fmt.Sprintf("channel-count-%d", chanId)
-	val, err := redisClient.Get(key).Int64()
-	if err != nil {
-		return 0, err
-	}
-	return val, nil
+	val, _ := redisClient.Get(key).Int64()
+	return val
 }
